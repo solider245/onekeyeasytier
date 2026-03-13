@@ -1,28 +1,256 @@
-# 高级网络配置模板
-# 适合复杂的多节点网络
+# =====================================================
+# EasyTier 高级配置模板
+# 适合进阶用户，提供了大部分配置项及中文说明
+# =====================================================
 
-[network]
-name = "EasyTier-Advanced-Network"
-ipv4_cidr = "10.0.0.0/16"
-ipv6_cidr = "fd00:2024::/64"
+# =====================================================
+# 基础网络设置
+# =====================================================
+network_name = ""
+network_secret = ""
+ipv4 = ""
+# ipv6 = ""
+dhcp = false
 
-[peers]
-# 多个对等节点提供冗余连接
-uri = "tcp://public.easytier.top:11010"
-uri = "udp://public.easytier.top:11010"
-uri = "tcp://backup.easytier.top:11010"
+# =====================================================
+# 监听器配置
+# 常用协议说明:
+# - udp/tcp: 基础协议
+# - ws/wss: WebSocket (可穿透防火墙)
+# - wg: WireGuard 协议
+# - quic: 新一代传输协议
+# - ring: 可靠消息队列
+# - faketcp: 伪造 TCP (用于 UDP 被阻)
+# =====================================================
+listeners = [
+    "udp://0.0.0.0:11010",
+    "tcp://0.0.0.0:11010",
+    "wg://0.0.0.0:11011",
+    "ws://0.0.0.0:11011/",
+    "wss://0.0.0.0:11012/",
+    "tcp://[::]:11010",
+    "udp://[::]:11010"
+]
 
-[dhcp]
-enabled = true
-ipv4_pool = "10.0.1.100-10.0.1.200"
-ipv6_pool = "fd00:2024::100-fd00:2024::200"
+# 手动指定公网地址（让其他节点用此地址连接）
+# 格式: protocol://public_ip:port
+# mapped_listeners = ["tcp://123.45.67.89:11010"]
 
-[routing]
-enabled = true
-table = 100
-table_priority = 1000
+# 不监听任何端口（仅作为客户端连接其他节点）
+# no_listener = false
 
-[nat]
-enabled = true
+# --- 对等节点 ---
+# [[peer]]
+# uri = "tcp://x.x.x.x:11010"
 
-dev_name = "easytier0"
+# =====================================================
+# RPC 端口配置
+# =====================================================
+# RPC 门户地址，0=随机端口(默认15888)，12345=localhost:12345，0.0.0.0:12345=监听所有接口
+# rpc_portal = "0"
+
+# RPC 白名单（只允许这些地址访问）
+# 格式: CIDR，如 127.0.0.1/32, 10.0.0.0/8
+# rpc_portal_whitelist = "127.0.0.1/32,127.0.0.0/8,::1/128"
+
+# =====================================================
+# 网络代理配置
+# =====================================================
+# 导出本地网络到 VPN（格式: CIDR）
+# 例: "192.168.1.0/24" -> 让其他节点能访问 192.168.1.0/24 网段
+# 支持映射: "10.0.0.0/24->192.168.0.0/24"
+# proxy_networks = []
+
+# 使用公共共享节点发现对等节点
+# external_node = true
+
+# =====================================================
+# 高级网络选项
+# =====================================================
+[flags]
+default_protocol = "udp"
+dev_name = ""
+enable_encryption = true
+enable_ipv6 = true
+mtu = 1380
+latency_first = true
+enable_exit_node = false
+no_tun = false
+use_smoltcp = false
+foreign_network_whitelist = "*"
+disable_p2p = false
+relay_all_peer_rpc = false
+disable_udp_hole_punching = false
+enableKcp_Proxy = true
+
+# =====================================================
+# 完整配置项说明（取消注释即可使用）
+# =====================================================
+
+# --- 主机名 ---
+# hostname = "my-node"
+
+# --- 实例名称（同一机器多实例时使用） ---
+# instance_name = "node1"
+
+# --- VPN 入口 ---
+# 定义 VPN 门户 URL，允许其他客户端连接
+# 格式: protocol://listen_ip:port/virtual_ip/cidr
+# 例: "wg://0.0.0.0:11010/10.14.14.0/24"
+# vpn_portal = ""
+
+# --- 加密配置 ---
+# 禁用加密（默认 false，必须与对等节点一致）
+# disable_encryption = false
+
+# 加密算法（默认空=自动选择）
+# 可选: xor, chacha20, aes-gcm, aes-gcm-256, openssl-aes128-gcm, openssl-aes256-gcm, openssl-chacha20
+# encryption_algorithm = ""
+
+# --- 多线程 ---
+# 启用多线程运行
+# multi_thread = false
+
+# 线程数量（必须大于2）
+# multi_thread_count = 2
+
+# --- IPv6 ---
+# 禁用 IPv6
+# disable_ipv6 = false
+
+# --- 出口节点 ---
+# 允许成为出口节点
+# enable_exit_node = false
+
+# 出口节点 IP 列表（按顺序优先级）
+# exit_nodes = ["10.14.14.100"]
+
+# --- 流量转发 ---
+# 通过系统内核转发子网代理包（禁用内置 NAT）
+# proxy_forward_by_system = false
+
+# --- 路由配置 ---
+# 手动路由（将禁用自动子网代理和 WireGuard 路由传播）
+# manual_routes = []
+
+# --- P2P 配置 ---
+# 仅与已建立 P2P 连接的节点通信
+# p2p_only = false
+
+# --- NAT 穿透 ---
+# 禁用 TCP 洞穿
+# disable_tcp_hole_punching = false
+
+# 禁用 UDP 洞穿
+# disable_udp_hole_punching = false
+
+# 禁用对称 NAT（NAT4）的 UDP 洞穿（基于生日攻击，可能被 ISP 阻断）
+# disable_sym_hole_punching = false
+
+# --- SOCKS5 代理 ---
+# 启用 SOCKS5 服务器，允许 SOCKS5 客户端访问虚拟网络
+# 格式: 端口号，如 "1080"
+# socks5 = ""
+
+# --- 压缩 ---
+# 压缩算法: none, zstd（默认 none，建议在内网使用 zstd）
+# compression = "none"
+
+# --- 物理网卡绑定 ---
+# 绑定连接器socket到物理设备，避免路由问题
+# bind_device = "eth0"
+
+# --- KCP 代理 ---
+# 启用 KCP 代理（改善弱网环境下 TCP 性能）
+# enable_kcp_proxy = true
+
+# 禁止其他节点使用 KCP 代理连接到此节点
+# disable_kcp_input = false
+
+# --- QUIC 代理 ---
+# 启用 QUIC 代理（改善弱网环境下 TCP 性能）
+# enable_quic_proxy = false
+
+# 禁止其他节点使用 QUIC 代理连接到此节点
+# disable_quic_input = false
+
+# QUIC 监听端口（0=随机）
+# quic_listen_port = 0
+
+# --- 端口转发 ---
+# 转发本地端口到远程端口
+# 格式: protocol://local_ip:local_port/remote_ip:remote_port
+# 例: "udp://0.0.0.0:12345/10.126.126.1:23456"
+# port_forward = []
+
+# --- Magic DNS ---
+# 启用 Magic DNS，可通过 <hostname>.et.net 访问节点
+# accept_dns = false
+
+# DNS 顶级域（默认 et.net）
+# tld_dns_zone = "et.net"
+
+# --- 私有模式 ---
+# 拒绝与不同网络名/密码的节点握手或中继
+# private_mode = false
+
+# --- 带宽限制 ---
+# 限制中继流量带宽（字节/秒，0=不限制）
+# foreign_relay_bps_limit = 0
+
+# --- 端口白名单 ---
+# TCP 端口白名单，支持单个(80)或范围(8000-9000)
+# tcp_whitelist = "*"
+
+# UDP 端口白名单
+# udp_whitelist = "*"
+
+# --- 中继 KCP ---
+# 禁用中继 KCP 包（避免过多带宽消耗）
+# disable_relay_kcp = false
+
+# 允许中继外国网络 KCP 包
+# enable_relay_foreign_network_kcp = false
+
+# --- STUN 服务器 ---
+# 覆盖默认 STUN 服务器（设为空数组则不使用）
+# stun_servers = ["stun.l.google.com:19302"]
+
+# stun_servers_v6 = []
+
+# =====================================================
+# 日志配置
+# =====================================================
+# 控制台日志级别: trace, debug, info, warn, error
+# console_log_level = "info"
+
+# 文件日志级别
+# file_log_level = "warn"
+
+# 日志文件目录
+# file_log_dir = "/var/log/easytier"
+
+# 单个日志文件大小（MB）
+# file_log_size = 100
+
+# 日志文件数量
+# file_log_count = 10
+
+# =====================================================
+# 配置服务器（Web 管理）
+# =====================================================
+# 配置服务器地址
+# 格式: protocol://ip:port/admin 或仅用户名（使用官方服务器）
+# config_server = "admin"
+
+# 机器 ID（用于配置恢复，必须唯一且固定）
+# machine_id = ""
+
+# 配置文件路径
+# config_file = "/etc/easytier/easytier.toml"
+
+# 配置目录（加载目录下所有 .toml 文件）
+# config_dir = "/etc/easytier/instances"
+
+# 禁用配置文件中环境变量解析
+# disable_env_parsing = false

@@ -1,26 +1,185 @@
-# 服务器节点配置模板
-# 适合作为中心服务器的配置
+# =====================================================
+# EasyTier 服务端配置模板
+# 适合作为公共节点或中心服务器
+# =====================================================
 
-[network]
-name = "EasyTier-Server-Network"
-ipv4_cidr = "10.0.0.0/16"
-ipv6_cidr = "fd00:2024::/64"
+# =====================================================
+# 基础网络设置
+# =====================================================
+network_name = ""
+network_secret = ""
+ipv4 = ""
+# ipv6 = ""
+dhcp = false
 
-[peers]
-# 服务器通常不需要连接其他节点
-# 客户端会连接到这个服务器
+# =====================================================
+# 监听器配置（服务端建议全开）
+# =====================================================
+listeners = [
+    "udp://0.0.0.0:11010",
+    "tcp://0.0.0.0:11010",
+    "wg://0.0.0.0:11011",
+    "ws://0.0.0.0:11011/",
+    "wss://0.0.0.0:11012/",
+    "tcp://[::]:11010",
+    "udp://[::]:11010"
+]
 
-[dhcp]
-enabled = true
-ipv4_pool = "10.0.1.100-10.0.1.200"
-ipv6_pool = "fd00:2024::100-fd00:2024::200"
+# --- 服务端专用配置 ---
 
-[routing]
-enabled = true
-table = 100
-table_priority = 1000
+# 不监听任何端口（仅接收连接）
+# no_listener = false
 
-[nat]
-enabled = false
+# =====================================================
+# RPC 端口配置（服务端建议开放）
+# =====================================================
+# RPC 门户地址，0=随机端口，建议固定
+# rpc_portal = "15888"
 
+# RPC 白名单（建议限制访问）
+# rpc_portal_whitelist = "0.0.0.0/0"
+
+# =====================================================
+# 服务端网络选项
+# =====================================================
+[flags]
+# 默认协议
+default_protocol = "udp"
+
+# 设备名称
 dev_name = "easytier0"
+
+# 加密（服务端建议开启）
+enable_encryption = true
+
+# IPv6
+enable_ipv6 = true
+
+# MTU
+mtu = 1380
+
+# 延迟优先
+latency_first = true
+
+# 允许作为出口节点（流量出口）
+enable_exit_node = false
+
+# 无 TUN 模式（需要 root）
+no_tun = false
+
+# 使用 smoltcp
+use_smoltcp = false
+
+# 网络白名单
+foreign_network_whitelist = "*"
+
+# P2P（服务端建议开启）
+disable_p2p = false
+
+# 中继
+relay_all_peer_rpc = false
+
+# 洞穿
+disable_udp_hole_punching = false
+
+# KCP 代理（服务端建议开启，改善弱网体验）
+enableKcp_Proxy = true
+
+# =====================================================
+# 服务端专用高级配置
+# =====================================================
+
+# --- 主机名 ---
+# hostname = "easytier-server"
+
+# --- 加密配置 ---
+# 禁用加密（谨慎使用！）
+# disable_encryption = false
+
+# 加密算法
+# encryption_algorithm = "chacha20"
+
+# --- 性能优化 ---
+# 启用多线程
+# multi_thread = true
+
+# 线程数量
+# multi_thread_count = 4
+
+# --- 出口节点 ---
+# 允许作为出口节点
+# enable_exit_node = true
+
+# 出口节点 IP
+# exit_nodes = ["10.0.0.1"]
+
+# --- NAT 配置 ---
+# 通过系统内核转发
+# proxy_forward_by_system = false
+
+# --- P2P ---
+# 仅 P2P 模式
+# p2p_only = false
+
+# --- NAT 穿透 ---
+# 禁用 TCP 洞穿
+# disable_tcp_hole_punching = false
+
+# 禁用 UDP 洞穿
+# disable_udp_hole_punching = false
+
+# --- SOCKS5 代理 ---
+# 启用 SOCKS5
+# socks5 = "1080"
+
+# --- 压缩 ---
+# 建议内网开启 zstd，外网关闭
+# compression = "none"
+
+# --- QUIC 代理 ---
+# enable_quic_proxy = true
+# quic_listen_port = 11013
+
+# --- Magic DNS ---
+# accept_dns = false
+# tld_dns_zone = "et.net"
+
+# --- 私有模式 ---
+# 私有模式（拒绝陌生节点）
+# private_mode = true
+
+# --- 带宽限制 ---
+# foreign_relay_bps_limit = 0
+
+# --- 端口白名单 ---
+# 限制可访问的端口
+# tcp_whitelist = "*"
+# udp_whitelist = "*"
+
+# =====================================================
+# 日志配置（服务端建议开启）
+# =====================================================
+# 控制台日志
+# console_log_level = "info"
+
+# 文件日志
+# file_log_level = "warn"
+
+# 日志目录
+# file_log_dir = "/var/log/easytier"
+
+# 文件大小
+# file_log_size = 100
+
+# 文件数量
+# file_log_count = 10
+
+# =====================================================
+# 服务端安全建议
+# =====================================================
+# 1. 使用强网络密钥
+# 2. 启用 encryption = true
+# 3. 启用 KCP/QUIC 代理提升弱网体验
+# 4. 限制 RPC 白名单
+# 5. 定期更新 EasyTier 版本
+# 6. 使用防火墙限制端口访问

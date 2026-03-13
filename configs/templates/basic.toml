@@ -1,22 +1,198 @@
-# 基础网络配置模板
-# 适合简单的点对点连接
+# =====================================================
+# EasyTier 基础配置模板
+# 适合简单快速部署，无需过多配置
+# =====================================================
 
-[network]
-name = "EasyTier-Basic-Network"
-ipv4_cidr = "10.0.0.0/24"
+# --- 基础网络设置 ---
+# 网络名称，用于标识 VPN 网络
+network_name = ""
 
-[peers]
-# 添加对等节点，留空使用默认公共节点
-uri = "tcp://public.easytier.top:11010"
+# 网络密钥，用于验证节点是否属于该网络
+network_secret = ""
 
-[dhcp]
-enabled = true
-ipv4_pool = "10.0.0.100-10.0.0.200"
+# IPv4 地址，留空则使用 DHCP 自动分配
+# 如果为空，此节点将只转发数据包，不创建 TUN 设备
+ipv4 = ""
 
-[routing]
-enabled = false
+# IPv6 地址（可选），可与 ipv4 双栈使用
+# ipv6 = ""
 
-[nat]
-enabled = false
+# 启用 DHCP 自动分配 IP（从 10.0.0.1 开始）
+dhcp = false
 
-dev_name = "easytier0"
+# =====================================================
+# 监听器配置
+# 格式：protocol://ip:port
+# 支持: tcp, udp, ws, wss, wg, quic, ring, faketcp
+# =====================================================
+listeners = [
+    "udp://0.0.0.0:11010",
+    "tcp://0.0.0.0:11010",
+    "wg://0.0.0.0:11011",
+    "ws://0.0.0.0:11011/",
+    "wss://0.0.0.0:11012/",
+    "tcp://[::]:11010",
+    "udp://[::]:11010"
+]
+
+# --- 对等节点配置 (Peer) ---
+# [[peer]]
+# uri = "tcp://127.0.0.1:11010"
+
+# =====================================================
+# 高级选项（一般用户无需修改）
+# =====================================================
+[flags]
+# 默认连接协议: udp, tcp, ws, wss, quic
+default_protocol = "udp"
+
+# TUN 设备名称（可选）
+# dev_name = "easytier0"
+
+# 启用加密（默认开启，安全）
+enable_encryption = true
+
+# 启用 IPv6
+enable_ipv6 = true
+
+# MTU 值，加密时默认 1360，非加密时默认 1380
+mtu = 1380
+
+# 延迟优先模式：选择最低延迟路径转发流量
+# false = 最短路径模式
+latency_first = true
+
+# 允许此节点成为出口节点（流量出口）
+enable_exit_node = false
+
+# 无 TUN 模式（无需 root 权限）
+# no_tun = false
+
+# 使用 smoltcp 栈（用于子网代理和 KCP 代理）
+# use_smoltcp = false
+
+# 外国网络白名单（* 表示允许所有）
+foreign_network_whitelist = "*"
+
+# 禁用 P2P 通信
+disable_p2p = false
+
+# 中继所有对等节点 RPC
+relay_all_peer_rpc = false
+
+# 禁用 UDP 洞穿（NAT 穿透）
+disable_udp_hole_punching = false
+
+# 启用 KCP 代理（提升弱网环境下 TCP 性能）
+enableKcp_Proxy = true
+
+# =====================================================
+# 完整配置项说明（被注释的选项）
+# 如需使用，取消注释并修改对应值
+# 更多配置请参考官方文档: https://easytier.rs
+# =====================================================
+
+# --- RPC 端口配置 ---
+# RPC 管理端口，0 表示随机端口（默认 15888）
+# rpc_portal = "0"
+
+# RPC 白名单，限制可访问 RPC 的地址
+# rpc_portal_whitelist = "127.0.0.1/32,127.0.0.0/8,::1/128"
+
+# --- 代理网络配置 ---
+# 导出本地网络到其他节点，如: "10.0.0.0/24"
+# 格式2: "10.0.0.0/24->192.168.0.0/24" (映射到其他 CIDR)
+# proxy_networks = ["192.168.1.0/24"]
+
+# --- 公共节点配置 ---
+# 使用公共共享节点发现对等节点
+# external_node = true
+
+# --- 主机名配置 ---
+# 用于标识设备的名称
+# hostname = "my-device"
+
+# --- 加密算法配置 ---
+# 支持: xor, chacha20, aes-gcm, aes-gcm-256, openssl-aes128-gcm, openssl-aes256-gcm, openssl-chacha20
+# encryption_algorithm = ""
+
+# --- 多线程配置 ---
+# 启用多线程运行（默认单线程）
+# multi_thread = false
+
+# 线程数量（默认 2，必须大于 2）
+# multi_thread_count = 2
+
+# --- 出口节点配置 ---
+# 出口节点 IP 地址列表（用于流量出口）
+# exit_nodes = ["10.14.14.100"]
+
+# --- 禁用 IPv6 ---
+# disable_ipv6 = false
+
+# --- 手动路由配置 ---
+# 手动分配路由 CIDR，将禁用子网代理
+# manual_routes = ["192.168.0.0/16"]
+
+# --- 私有模式 ---
+# 拒绝与不同网络名和密码的节点握手或中继
+# private_mode = false
+
+# --- SOCKS5 代理 ---
+# 启用 SOCKS5 服务器，格式: 端口号
+# socks5 = "1080"
+
+# --- 端口转发 ---
+# 格式: protocol://local_ip:local_port/remote_ip:remote_port
+# port_forward = ["udp://0.0.0.0:12345/10.126.126.1:23456"]
+
+# --- Magic DNS 配置 ---
+# 启用 Magic DNS，可使用域名访问节点
+# accept_dns = false
+
+# DNS 顶级域（默认 et.net）
+# tld_dns_zone = "et.net"
+
+# --- 压缩配置 ---
+# 压缩算法: none, zstd（默认 none）
+# compression = "none"
+
+# --- QUIC 代理配置 ---
+# 启用 QUIC 代理（提升弱网环境下 TCP 性能）
+# enable_quic_proxy = false
+
+# QUIC 监听端口（0 表示随机端口）
+# quic_listen_port = 0
+
+# --- 日志配置 ---
+# 控制台日志级别: trace, debug, info, warn, error
+# console_log_level = "info"
+
+# 文件日志级别
+# file_log_level = "warn"
+
+# 日志文件目录
+# file_log_dir = "/var/log/easytier"
+
+# 单个日志文件大小（MB，默认 100）
+# file_log_size = 100
+
+# 日志文件数量（默认 10）
+# file_log_count = 10
+
+# --- 中继带宽限制 ---
+# 限制中继流量带宽（单位：字节/秒）
+# foreign_relay_bps_limit = 0
+
+# --- TCP/UDP 白名单 ---
+# TCP 端口白名单，支持单个端口(80)或范围(8000-9000)
+# tcp_whitelist = "*"
+
+# UDP 端口白名单
+# udp_whitelist = "*"
+
+# --- STUN 服务器配置 ---
+# 覆盖默认 STUN 服务器
+# stun_servers = ["stun.l.google.com:19302"]
+
+# stun_servers_v6 = []
