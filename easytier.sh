@@ -28,6 +28,11 @@ LOG_FILE="/var/log/easytier.log"
 # 原始下载地址
 GITHUB_API_URL="https://api.github.com/repos/EasyTier/EasyTier/releases/latest"
 
+# --- 笔记模块配置 ---
+NOTES_DIR="$HOME/.easytier"
+NOTES_FILE="${NOTES_DIR}/notes.md"
+INSTALL_LOG="${NOTES_DIR}/install.log"
+
 # --- 辅助函数 ---
 check_root() {
 	if [ "$(id -u)" -ne 0 ]; then
@@ -237,6 +242,7 @@ install_easytier() {
 	chmod +x "${INSTALL_DIR}/${CORE_BINARY_NAME}" "${INSTALL_DIR}/${CLI_BINARY_NAME}"
 	rm -f "$temp_file"; rm -rf "/tmp/${unzip_dir_name}"
 	
+	log_install "$version"
 	echo -e "${GREEN}--- EasyTier ${version} 安装/更新成功! ---${NC}"
 	create_shortcut
 	
@@ -401,6 +407,99 @@ check_update() {
 
 uninstall_easytier() { read -p "警告: 此操作将停止服务并删除所有相关文件。确定要卸载吗? (y/n): " confirm; if [[ "$confirm" != "y" && "$confirm" != "Y" ]]; then echo "操作已取消。"; return; fi; echo "正在停止并禁用服务..."; stop_service &> /dev/null; disable_service &> /dev/null; echo "正在删除文件..."; rm -f "${SERVICE_FILE}" "${INSTALL_DIR}/${CORE_BINARY_NAME}" "${INSTALL_DIR}/${CLI_BINARY_NAME}"; rm -rf "${CONFIG_DIR}"; remove_shortcut; if [[ "$OS_TYPE" == "linux" ]]; then systemctl daemon-reload; fi; if [[ "$OS_TYPE" == "macos" || "$OS_TYPE" == "alpine" ]]; then rm -f "$LOG_FILE"; fi; echo -e "${GREEN}EasyTier 已成功卸载。${NC}"; }
 
+# --- 笔记功能 ---
+init_notes() {
+    mkdir -p "$NOTES_DIR"
+    if [ ! -f "$NOTES_FILE" ]; then
+        cat > "$NOTES_FILE" << 'EOF'
+# EasyTier 笔记
+
+## 快速开始
+- 安装：选项 1
+- 检查更新：选项 2
+- 部署网络：选项 3
+
+## 常见问题
+
+### Q1: 连接不上怎么办？
+1. 检查服务是否运行：`systemctl status easytier`
+2. 检查端口是否开放：11010, 11011, 11012
+3. 检查防火墙规则
+
+### Q2: 速度很慢怎么办？
+1. 尝试使用代理版本
+2. 检查网络延迟
+3. 尝试不同的协议（UDP/TCP）
+
+### Q3: 如何查看日志？
+- Linux: `journalctl -u easytier -f`
+- macOS: `tail -f /var/log/easytier.log`
+
+## 节点记录
+在此记录你的节点信息：
+- 节点地址：
+- 网络名称：
+- 网络密钥：
+
+## 配置心得
+在这里记录你的配置经验...
+
+---
+*此笔记由 EasyTier 管理脚本自动生成*
+EOF
+    fi
+}
+
+view_notes() {
+    init_notes
+    echo -e "${GREEN}--- 笔记内容 ---${NC}"
+    cat "$NOTES_FILE"
+    echo ""
+    echo -e "笔记文件位置: ${YELLOW}${NOTES_FILE}${NC}"
+}
+
+edit_notes() {
+    init_notes
+    echo "请选择编辑器:"
+    echo "  1. nano"
+    echo "  2. vim"  
+    echo "  3. 直接打开文件位置"
+    read -p "请选择 [1-3]: " editor_choice
+    case $editor_choice in
+        1)
+            if command -v nano >/dev/null 2>&1; then
+                nano "$NOTES_FILE"
+            else
+                echo -e "${RED}nano 未安装，请先安装或选择其他编辑器${NC}"
+            fi
+            ;;
+        2)
+            if command -v vim >/dev/null 2>&1; then
+                vim "$NOTES_FILE"
+            else
+                echo -e "${RED}vim 未安装，请先安装或选择其他编辑器${NC}"
+            fi
+            ;;
+        3)
+            if [[ "$OS_TYPE" == "macos" ]]; then
+                open "$NOTES_FILE"
+            elif [[ "$OS_TYPE" == "linux" ]]; then
+                xdg-open "$NOTES_FILE" 2>/dev/null || echo "请手动打开: $NOTES_FILE"
+            fi
+            ;;
+        *)
+            echo -e "${RED}无效选择${NC}"
+            ;;
+    esac
+}
+
+log_install() {
+    init_notes
+    local version="$1"
+    local date=$(date "+%Y-%m-%d %H:%M:%S")
+    echo "[$date] 安装版本: $version" >> "$INSTALL_LOG"
+}
+
 # --- 主菜单 ---
 main() {
 	# 修复 set_toml_value 与旧版不兼容的问题
@@ -429,9 +528,11 @@ main() {
 		echo " 7. 查看EasyTier网络节点"
 		echo "-------------------------------------------------------"
 		echo " 8. 卸载 EasyTier"
+		echo " 9. 查看笔记/FAQ"
+		echo "10. 编辑笔记"
 		echo " 0. 退出脚本"
 		echo "======================================================="
-		read -p "请输入选项 [0-8]: " choice
+		read -p "请输入选项 [0-10]: " choice
 		
 		echo
 		
@@ -444,6 +545,8 @@ main() {
 			6) if check_installed && [ -f "$CONFIG_FILE" ]; then cat "$CONFIG_FILE"; else echo -e "${YELLOW}配置文件不存在或未安装。${NC}"; fi ;;
 			7) if check_installed; then ${INSTALL_DIR}/${CLI_BINARY_NAME} peer; fi ;;
 			8) uninstall_easytier ;;
+			9) view_notes ;;
+			10) edit_notes ;;
 			0) exit 0 ;;
 			*) echo -e "${RED}无效输入${NC}" ;;
 		esac

@@ -256,6 +256,7 @@ install_easytier() {
     
     rm -f "$temp_file"; rm -rf "$extract_dir"
     
+    log_install "$version"
     echo -e "${GREEN}--- EasyTier 安装/更新成功! ---${NC}"
     create_shortcut
     
@@ -439,6 +440,71 @@ check_update() {
     fi
 }
 
+# --- 笔记模块配置 ---
+NOTES_DIR="$HOME/.easytier"
+NOTES_FILE="${NOTES_DIR}/notes.md"
+INSTALL_LOG="${NOTES_DIR}/install.log"
+
+init_notes() {
+    mkdir -p "$NOTES_DIR"
+    if [ ! -f "$NOTES_FILE" ]; then
+        cat > "$NOTES_FILE" << 'EOF'
+# EasyTier 笔记 (OpenWrt)
+
+## 快速开始
+- 安装：选项 1
+- 检查更新：选项 2
+
+## 常见问题
+
+### Q1: 连接不上怎么办？
+1. 检查服务是否运行：`/etc/init.d/easytier status`
+2. 检查端口是否开放：11010, 11011, 11012
+3. 检查防火墙规则
+
+### Q2: OpenWrt 空间不足？
+- 建议将日志输出到 /tmp 或关闭详细日志
+
+### Q3: 如何查看日志？
+`logread -f -e easytier-core`
+
+## 节点记录
+- 节点地址：
+- 网络名称：
+- 网络密钥：
+
+---
+*此笔记由 EasyTier 管理脚本自动生成*
+EOF
+    fi
+}
+
+view_notes() {
+    init_notes
+    echo -e "${GREEN}--- 笔记内容 ---${NC}"
+    cat "$NOTES_FILE"
+    echo ""
+    echo -e "笔记文件位置: ${YELLOW}${NOTES_FILE}${NC}"
+}
+
+edit_notes() {
+    init_notes
+    if command -v vi >/dev/null 2>&1; then
+        vi "$NOTES_FILE"
+    elif command -v nano >/dev/null 2>&1; then
+        nano "$NOTES_FILE"
+    else
+        echo "请使用其他编辑器打开: $NOTES_FILE"
+    fi
+}
+
+log_install() {
+    init_notes
+    local version="$1"
+    local date=$(date "+%Y-%m-%d %H:%M:%S")
+    echo "[$date] 安装版本: $version" >> "$INSTALL_LOG"
+}
+
 # --- 主菜单 ---
 main() {
     check_root; check_arch; check_dependencies
@@ -448,8 +514,8 @@ main() {
         echo "======================================================="; echo -e "   ${GREEN}EasyTier OpenWrt 专属管理脚本 v6.3${NC}"; echo -e "   (架构: aarch64, 自动创建 'et' 快捷命令)"; echo "======================================================="
         echo " 1. 安装或更新 EasyTier"; echo " 2. 检查更新"; echo " 3. 部署新网络 (首个节点)"; echo " 4. 加入现有网络"; echo "-------------------------------------------------------"
         echo " 5. 管理服务 (启停/状态/日志)"; echo " 6. 查看配置文件"; echo " 7. 查看网络节点 (easytier-cli)"; echo "-------------------------------------------------------"
-        echo " 8. 卸载 EasyTier"; echo " 0. 退出脚本"; echo "======================================================="
-        read -p "请输入选项 [0-8]: " choice
+        echo " 8. 卸载 EasyTier"; echo " 9. 查看笔记/FAQ"; echo "10. 编辑笔记"; echo " 0. 退出脚本"; echo "======================================================="
+        read -p "请输入选项 [0-10]: " choice
         
         echo
         case $choice in
@@ -461,6 +527,8 @@ main() {
             6) if check_installed && [ -f "$CONFIG_FILE" ]; then cat "$CONFIG_FILE"; else echo -e "${YELLOW}配置文件不存在或 EasyTier 未安装。${NC}"; fi ;;
             7) if check_installed; then ${INSTALL_DIR}/${CLI_BINARY_NAME} peer; fi ;;
             8) uninstall_easytier ;;
+            9) view_notes ;;
+            10) edit_notes ;;
             0) exit 0 ;;
             *) echo -e "${RED}无效输入${NC}" ;;
         esac
