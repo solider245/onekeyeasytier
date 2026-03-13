@@ -5,8 +5,8 @@
 ![ec9mmBQAWMdMVdkePVvogUYIT4YlodQo.png](https://cdn.nodeimage.com/i/ec9mmBQAWMdMVdkePVvogUYIT4YlodQo.png)
 ```
 bash <(curl -sL https://raw.githubusercontent.com/ceocok/c.cococ/refs/heads/main/easytier.sh)
+# 国内用户: bash <(curl -sL https://ghfast.top/https://raw.githubusercontent.com/ceocok/c.cococ/refs/heads/main/easytier.sh)
 ```
-> 国内用户推荐（使用代理加速）: `bash <(curl -sL https://ghfast.top/https://raw.githubusercontent.com/ceocok/c.cococ/refs/heads/main/easytier.sh)`
 - ✨ 这个脚本凭什么被称为"宇宙无敌好用"？
 - 🖥️ 全平台制霸
 - 完美适配主流系统，并为每个系统提供了最佳实践：

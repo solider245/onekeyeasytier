@@ -1,0 +1,66 @@
+version: '3.8'
+
+services:
+  easytier-web:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    container_name: easytier-web
+    ports:
+      - "8080:8080"
+    volumes:
+      - easytier_config:/etc/easytier
+      - easytier_logs:/var/log/easytier
+      - /usr/local/bin:/usr/local/bin:ro  # 挂载主机二进制文件目录
+    environment:
+      - EASYTIER_CONFIG_DIR=/etc/easytier
+      - EASYTIER_BINARY_DIR=/usr/local/bin
+      - EASYTIER_WEB_PORT=8080
+      - EASYTIER_ENABLE_AUTH=false
+      - EASYTIER_USERNAME=admin
+      - EASYTIER_PASSWORD=easytier
+      # 可选：自动下载EasyTier二进制文件
+      # - EASYTIER_DOWNLOAD_URL=https://github.com/EasyTier/EasyTier/releases/download/v2.3.2/easytier-linux-x86_64-v2.3.2.zip
+    restart: unless-stopped
+    privileged: true  # 需要特权来管理系统服务
+    networks:
+      - easytier-network
+
+  # 可选：运行EasyTier核心服务
+  easytier-core:
+    image: alpine:latest
+    container_name: easytier-core
+    volumes:
+      - easytier_config:/etc/easytier:ro
+      - easytier_logs:/var/log/easytier
+    command: >
+      sh -c "
+        apk add --no-cache unzip curl &&
+        if [ ! -f /usr/local/bin/easytier-core ]; then
+          echo '下载EasyTier二进制文件...' &&
+          curl -L -o /tmp/easytier.zip https://github.com/EasyTier/EasyTier/releases/download/v2.3.2/easytier-linux-x86_64-v2.3.2.zip &&
+          cd /tmp && unzip easytier.zip &&
+          cp easytier-core easytier-cli /usr/local/bin/ &&
+          chmod +x /usr/local/bin/easytier-* &&
+          rm -f /tmp/easytier.zip
+        fi &&
+        echo '启动EasyTier核心服务...' &&
+        exec /usr/local/bin/easytier-core --config /etc/easytier/easytier.toml
+      "
+    restart: unless-stopped
+    privileged: true
+    network_mode: host
+    depends_on:
+      - easytier-web
+    profiles:
+      - with-core
+
+volumes:
+  easytier_config:
+    driver: local
+  easytier_logs:
+    driver: local
+
+networks:
+  easytier-network:
+    driver: bridge

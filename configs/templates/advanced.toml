@@ -1,0 +1,28 @@
+# 高级网络配置模板
+# 适合复杂的多节点网络
+
+[network]
+name = "EasyTier-Advanced-Network"
+ipv4_cidr = "10.0.0.0/16"
+ipv6_cidr = "fd00:2024::/64"
+
+[peers]
+# 多个对等节点提供冗余连接
+uri = "tcp://public.easytier.top:11010"
+uri = "udp://public.easytier.top:11010"
+uri = "tcp://backup.easytier.top:11010"
+
+[dhcp]
+enabled = true
+ipv4_pool = "10.0.1.100-10.0.1.200"
+ipv6_pool = "fd00:2024::100-fd00:2024::200"
+
+[routing]
+enabled = true
+table = 100
+table_priority = 1000
+
+[nat]
+enabled = true
+
+dev_name = "easytier0"

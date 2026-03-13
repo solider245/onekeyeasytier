@@ -1,0 +1,22 @@
+# 基础网络配置模板
+# 适合简单的点对点连接
+
+[network]
+name = "EasyTier-Basic-Network"
+ipv4_cidr = "10.0.0.0/24"
+
+[peers]
+# 添加对等节点，留空使用默认公共节点
+uri = "tcp://public.easytier.top:11010"
+
+[dhcp]
+enabled = true
+ipv4_pool = "10.0.0.100-10.0.0.200"
+
+[routing]
+enabled = false
+
+[nat]
+enabled = false
+
+dev_name = "easytier0"
