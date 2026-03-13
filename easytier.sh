@@ -183,27 +183,33 @@ parse_network_token() {
 	fi
 }
 
-show_community_nodes() {
-	echo -e "${BLUE}==============================================${NC}"
-	echo -e "${BLUE}       可用的公共节点列表${NC}"
-	echo -e "${BLUE}==============================================${NC}"
+flush_output() {
 	echo ""
-	echo " 1. tcp://public.easytier.top:11010 ${GREEN}(官方节点 - 可能不稳定)${NC}"
-	echo " 2. tcp://124.221.120.232:11010 ${GREEN}(社区节点 - 北京联通)${NC}"
-	echo " 3. tcp://43.154.108.32:11010 ${GREEN}(社区节点 - 广东电信)${NC}"
-	echo " 4. tcp://47.119.167.113:11010 ${GREEN}(社区节点 - 上海阿里云)${NC}"
-	echo " 5. tcp://47.116.129.91:11010 ${GREEN}(社区节点 - 江苏移动)${NC}"
-	echo " 6. tcp://47.243.72.177:11010 ${GREEN}(社区节点 - 香港)${NC}"
-	echo " 7. tcp://149.28.85.42:11010 ${GREEN}(社区节点 - 新加坡)${NC}"
-	echo " 8. tcp://207.148.114.92:11010 ${GREEN}(社区节点 - 日本东京)${NC}"
-	echo " 9. tcp://149.28.197.141:11010 ${GREEN}(社区节点 - 澳大利亚)${NC}"
-	echo -e "${YELLOW}10. 自定义节点地址${NC}"
-	echo -e "${YELLOW}11. 跳过 (不添加公共节点)${NC}"
+}
+
+show_community_nodes() {
+	echo ""
+	echo "=============================================="
+	echo "       可用的公共节点列表"
+	echo "=============================================="
+	echo ""
+	echo " 1. tcp://public.easytier.top:11010 (官方节点 - 可能不稳定)"
+	echo " 2. tcp://124.221.120.232:11010 (社区节点 - 北京联通)"
+	echo " 3. tcp://43.154.108.32:11010 (社区节点 - 广东电信)"
+	echo " 4. tcp://47.119.167.113:11010 (社区节点 - 上海阿里云)"
+	echo " 5. tcp://47.116.129.91:11010 (社区节点 - 江苏移动)"
+	echo " 6. tcp://47.243.72.177:11010 (社区节点 - 香港)"
+	echo " 7. tcp://149.28.85.42:11010 (社区节点 - 新加坡)"
+	echo " 8. tcp://207.148.114.92:11010 (社区节点 - 日本东京)"
+	echo " 9. tcp://149.28.197.141:11010 (社区节点 - 澳大利亚)"
+	echo "10. 自定义节点地址"
+	echo "11. 跳过 (不添加公共节点)"
 	echo ""
 }
 
 select_community_node() {
 	show_community_nodes
+	flush_output
 	echo -n "请选择要使用的公共节点 [1-11]: "
 	read node_choice
 	
@@ -618,7 +624,6 @@ join_existing_network() {
 	read -p "请输入网络密钥 (或留空如果使用Token): " network_secret
 	read -p "请输入此节点虚拟IP (留空则启用DHCP): " virtual_ip
 	
-	echo ""
 	peer_address=$(select_community_node)
 	
 	if [ "$peer_address" = "skip" ]; then
