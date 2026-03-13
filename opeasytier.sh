@@ -183,37 +183,22 @@ parse_network_token() {
     fi
 }
 
-declare -A COMMUNITY_NODES=(
-    ["1"]="tcp://public.easytier.top:11010|官方节点 (可能不稳定)"
-    ["2"]="tcp://124.221.120.232:11010|社区节点 (北京联通)"
-    ["3"]="tcp://43.154.108.32:11010|社区节点 (广东电信)"
-    ["4"]="tcp://47.119.167.113:11010|社区节点 (上海阿里云)"
-    ["5"]="tcp://47.116.129.91:11010|社区节点 (江苏移动)"
-    ["6"]="tcp://47.243.72.177:11010|社区节点 (香港)"
-    ["7"]="tcp://149.28.85.42:11010|社区节点 (新加坡)"
-    ["8"]="tcp://207.148.114.92:11010|社区节点 (日本东京)"
-    ["9"]="tcp://149.28.197.141:11010|社区节点 (澳大利亚)"
-    ["10"]="custom|自定义节点"
-    ["11"]="skip|跳过 (不添加公共节点)"
-)
-
 show_community_nodes() {
     echo -e "${BLUE}==============================================${NC}"
     echo -e "${BLUE}       可用的公共节点列表${NC}"
     echo -e "${BLUE}==============================================${NC}"
     echo ""
-    for i in $(seq 1 11); do
-        local node_info="${COMMUNITY_NODES[$i]}"
-        local node_addr=$(echo "$node_info" | cut -d'|' -f1)
-        local node_desc=$(echo "$node_info" | cut -d'|' -f2)
-        if [ "$node_addr" = "skip" ]; then
-            echo -e "${YELLOW} ${i}. 跳过 (不添加公共节点)${NC}"
-        elif [ "$node_addr" = "custom" ]; then
-            echo -e "${YELLOW} ${i}. 自定义节点地址${NC}"
-        else
-            echo -e " ${i}. ${node_addr} ${GREEN}(${node_desc})${NC}"
-        fi
-    done
+    echo " 1. tcp://public.easytier.top:11010 ${GREEN}(官方节点 - 可能不稳定)${NC}"
+    echo " 2. tcp://124.221.120.232:11010 ${GREEN}(社区节点 - 北京联通)${NC}"
+    echo " 3. tcp://43.154.108.32:11010 ${GREEN}(社区节点 - 广东电信)${NC}"
+    echo " 4. tcp://47.119.167.113:11010 ${GREEN}(社区节点 - 上海阿里云)${NC}"
+    echo " 5. tcp://47.116.129.91:11010 ${GREEN}(社区节点 - 江苏移动)${NC}"
+    echo " 6. tcp://47.243.72.177:11010 ${GREEN}(社区节点 - 香港)${NC}"
+    echo " 7. tcp://149.28.85.42:11010 ${GREEN}(社区节点 - 新加坡)${NC}"
+    echo " 8. tcp://207.148.114.92:11010 ${GREEN}(社区节点 - 日本东京)${NC}"
+    echo " 9. tcp://149.28.197.141:11010 ${GREEN}(社区节点 - 澳大利亚)${NC}"
+    echo -e "${YELLOW}10. 自定义节点地址${NC}"
+    echo -e "${YELLOW}11. 跳过 (不添加公共节点)${NC}"
     echo ""
 }
 
