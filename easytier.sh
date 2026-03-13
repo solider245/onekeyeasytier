@@ -179,6 +179,25 @@ remove_shortcut() {
 
 install_easytier() {
 	echo -e "${GREEN}--- 开始安装或更新 EasyTier ---${NC}"
+	
+	local need_restart=false
+	
+	# 检测是否有进程在运行
+	if pgrep -x "easytier-core" > /dev/null 2>&1 || pgrep -f "easytier-core" > /dev/null 2>&1; then
+		echo -e "${YELLOW}检测到 EasyTier 正在运行:${NC}"
+		echo "  1. 停止服务后安装（推荐）"
+		echo "  2. 强制安装（可能导致失败）"
+		read -p "请选择 [1-2](默认1): " install_choice
+		if [ "$install_choice" = "1" ] || [ -z "$install_choice" ]; then
+			echo "正在停止 EasyTier 服务..."
+			stop_service
+			need_restart=true
+			sleep 2
+		else
+			echo -e "${YELLOW}警告: 强制安装可能会失败!${NC}"
+		fi
+	fi
+
 	local os_identifier="linux"; if [[ "$OS_TYPE" == "macos" ]]; then os_identifier="macos"; fi
 	local arch; arch=$(get_arch)
 
@@ -221,8 +240,10 @@ install_easytier() {
 	echo -e "${GREEN}--- EasyTier ${version} 安装/更新成功! ---${NC}"
 	create_shortcut
 	
-	if [ -f "$SERVICE_FILE" ]; then
-		echo -e "${YELLOW}检测到现有服务，正在重启以应用更新...${NC}"; restart_service;
+	if [ "$need_restart" = true ]; then
+		echo -e "${YELLOW}正在重启服务...${NC}"; restart_service;
+	elif [ -f "$SERVICE_FILE" ]; then
+		echo -e "${YELLOW}检测到现有服务，如需重启请手动执行服务管理。${NC}"
 	fi
 }
 
