@@ -8,10 +8,13 @@
 
 ```bash
 # Linux/macOS/Alpine (一键安装脚本)
-# 直接运行 (需要 root 权限)
+# 方法1: 直接下载 (推荐)
 curl -sL https://raw.githubusercontent.com/solider245/onekeyeasytier/main/easytier.sh -o /tmp/easytier.sh && bash /tmp/easytier.sh
 
-# 国内用户 (使用代理)
+# 方法2: GitHub 代理加速 (国内推荐)
+curl -sL https://ghproxy.com/https://raw.githubusercontent.com/solider245/onekeyeasytier/main/easytier.sh -o /tmp/easytier.sh && bash /tmp/easytier.sh
+
+# 方法3: 备用代理
 curl -sL https://ghfast.top/https://raw.githubusercontent.com/solider245/onekeyeasytier/main/easytier.sh -o /tmp/easytier.sh && bash /tmp/easytier.sh
 ```
 
