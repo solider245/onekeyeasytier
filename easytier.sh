@@ -348,6 +348,57 @@ join_existing_network() {
 
 manage_service() { check_installed || return 1; PS3="请选择操作: "; options=("启动" "停止" "重启" "状态" "设为开机自启" "取消开机自启" "查看日志" "返回"); select opt in "${options[@]}"; do case $opt in "启动") start_service && echo -e "${GREEN}服务已启动。${NC}"; break ;; "停止") stop_service && echo -e "${GREEN}服务已停止。${NC}"; break ;; "重启") restart_service && echo -e "${GREEN}服务已重启。${NC}"; break ;; "状态") status_service; break ;; "设为开机自启") enable_service; break ;; "取消开机自启") disable_service; break ;; "查看日志") log_service; break ;; "返回") break ;; esac; done; }
 
+check_update() {
+	echo -e "${GREEN}--- 检查 EasyTier 更新 ---${NC}"
+	
+	# 获取 GitHub 最新稳定版本
+	echo "正在获取最新版本信息..."
+	local latest_info; latest_info=$(curl -sL "$GITHUB_API_URL")
+	if [ -z "$latest_info" ] || ! echo "$latest_info" | jq . >/dev/null 2>&1; then
+		echo -e "${RED}错误: 无法从 GitHub API 获取版本信息。${NC}"
+		return 1
+	fi
+	
+	local latest_version; latest_version=$(echo "$latest_info" | jq -r ".tag_name")
+	echo -e "最新版本: ${GREEN}${latest_version}${NC}"
+	
+	# 检查是否已安装
+	if ! check_installed >/dev/null 2>&1; then
+		echo -e "${YELLOW}EasyTier 未安装。要安装最新版本吗? (y/n): ${NC}"
+		read -p "请选择: " install_choice
+		if [ "$install_choice" = "y" ] || [ "$install_choice" = "Y" ]; then
+			install_easytier
+		fi
+		return
+	fi
+	
+	# 获取当前安装版本
+	local current_version
+	current_version=$(${INSTALL_DIR}/${CORE_BINARY_NAME} --version 2>/dev/null | head -1)
+	if [ -z "$current_version" ]; then
+		current_version="未知"
+	else
+		# 尝试提取版本号
+		current_version=$(echo "$current_version" | grep -oE 'v[0-9]+\.[0-9]+\.[0-9]+' | head -1)
+		if [ -z "$current_version" ]; then
+			current_version=$(${INSTALL_DIR}/${CORE_BINARY_NAME} --version 2>/dev/null | head -1 | tr -d '\n')
+		fi
+	fi
+	
+	echo -e "当前版本: ${YELLOW}${current_version}${NC}"
+	
+	# 对比版本
+	if [ "$current_version" = "$latest_version" ]; then
+		echo -e "${GREEN}✓ 当前已是最新版本!${NC}"
+	else
+		echo -e "${YELLOW}有可用更新!${NC}"
+		read -p "是否现在更新? (y/n): " update_choice
+		if [ "$update_choice" = "y" ] || [ "$update_choice" = "Y" ]; then
+			install_easytier
+		fi
+	fi
+}
+
 uninstall_easytier() { read -p "警告: 此操作将停止服务并删除所有相关文件。确定要卸载吗? (y/n): " confirm; if [[ "$confirm" != "y" && "$confirm" != "Y" ]]; then echo "操作已取消。"; return; fi; echo "正在停止并禁用服务..."; stop_service &> /dev/null; disable_service &> /dev/null; echo "正在删除文件..."; rm -f "${SERVICE_FILE}" "${INSTALL_DIR}/${CORE_BINARY_NAME}" "${INSTALL_DIR}/${CLI_BINARY_NAME}"; rm -rf "${CONFIG_DIR}"; remove_shortcut; if [[ "$OS_TYPE" == "linux" ]]; then systemctl daemon-reload; fi; if [[ "$OS_TYPE" == "macos" || "$OS_TYPE" == "alpine" ]]; then rm -f "$LOG_FILE"; fi; echo -e "${GREEN}EasyTier 已成功卸载。${NC}"; }
 
 # --- 主菜单 ---
@@ -369,28 +420,30 @@ main() {
 		echo -e "   ${GREEN}EasyTier 跨平台部署 Debian/Ubuntu/Mac/Alpine${NC}"
 		echo "======================================================="
 		echo " 1. 安装或更新 EasyTier"
-		echo " 2. 部署服务器 (服务节点)"
-		echo " 3. 加入EasyTier组网网络"
+		echo " 2. 检查更新"
+		echo " 3. 部署服务器 (服务节点)"
+		echo " 4. 加入EasyTier组网网络"
 		echo "-------------------------------------------------------"
-		echo " 4. 管理EasyTier服务状态"
-		echo " 5. 查看EasyTier配置文件"
-		echo " 6. 查看EasyTier网络节点"
+		echo " 5. 管理EasyTier服务状态"
+		echo " 6. 查看EasyTier配置文件"
+		echo " 7. 查看EasyTier网络节点"
 		echo "-------------------------------------------------------"
-		echo " 7. 卸载 EasyTier"
+		echo " 8. 卸载 EasyTier"
 		echo " 0. 退出脚本"
 		echo "======================================================="
-		read -p "请输入选项 [0-7]: " choice
+		read -p "请输入选项 [0-8]: " choice
 		
 		echo
 		
 		case $choice in
 			1) install_easytier ;;
-			2) deploy_new_network ;;
-			3) join_existing_network ;;
-			4) manage_service ;;
-			5) if check_installed && [ -f "$CONFIG_FILE" ]; then cat "$CONFIG_FILE"; else echo -e "${YELLOW}配置文件不存在或未安装。${NC}"; fi ;;
-			6) if check_installed; then ${INSTALL_DIR}/${CLI_BINARY_NAME} peer; fi ;;
-			7) uninstall_easytier ;;
+			2) check_update ;;
+			3) deploy_new_network ;;
+			4) join_existing_network ;;
+			5) manage_service ;;
+			6) if check_installed && [ -f "$CONFIG_FILE" ]; then cat "$CONFIG_FILE"; else echo -e "${YELLOW}配置文件不存在或未安装。${NC}"; fi ;;
+			7) if check_installed; then ${INSTALL_DIR}/${CLI_BINARY_NAME} peer; fi ;;
+			8) uninstall_easytier ;;
 			0) exit 0 ;;
 			*) echo -e "${RED}无效输入${NC}" ;;
 		esac

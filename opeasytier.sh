@@ -391,27 +391,76 @@ uninstall_easytier() {
     echo -e "${GREEN}EasyTier 已成功卸载。${NC}"
 }
 
+check_update() {
+    echo -e "${GREEN}--- 检查 EasyTier 更新 ---${NC}"
+    
+    echo "正在获取最新版本信息..."
+    local latest_info
+    latest_info=$(curl -sL "https://api.github.com/repos/EasyTier/EasyTier/releases/latest")
+    if [ -z "$latest_info" ]; then
+        echo -e "${RED}错误: 无法从 GitHub API 获取版本信息。${NC}"
+        return 1
+    fi
+    
+    local latest_version
+    latest_version=$(echo "$latest_info" | grep -o '"tag_name": "[^"]*' | cut -d'"' -f4)
+    echo -e "最新版本: ${GREEN}${latest_version}${NC}"
+    
+    if [ ! -f "${INSTALL_DIR}/${CORE_BINARY_NAME}" ]; then
+        echo -e "${YELLOW}EasyTier 未安装。要安装最新版本吗? (y/n): ${NC}"
+        read -p "请选择: " install_choice
+        if [ "$install_choice" = "y" ] || [ "$install_choice" = "Y" ]; then
+            install_easytier
+        fi
+        return
+    fi
+    
+    local current_version
+    current_version=$(${INSTALL_DIR}/${CORE_BINARY_NAME} --version 2>/dev/null | head -1)
+    if [ -z "$current_version" ]; then
+        current_version="未知"
+    else
+        current_version=$(echo "$current_version" | grep -oE 'v[0-9]+\.[0-9]+\.[0-9]+' | head -1)
+        if [ -z "$current_version" ]; then
+            current_version=$(${INSTALL_DIR}/${CORE_BINARY_NAME} --version 2>/dev/null | head -1 | tr -d '\n')
+        fi
+    fi
+    
+    echo -e "当前版本: ${YELLOW}${current_version}${NC}"
+    
+    if [ "$current_version" = "$latest_version" ]; then
+        echo -e "${GREEN}✓ 当前已是最新版本!${NC}"
+    else
+        echo -e "${YELLOW}有可用更新!${NC}"
+        read -p "是否现在更新? (y/n): " update_choice
+        if [ "$update_choice" = "y" ] || [ "$update_choice" = "Y" ]; then
+            install_easytier
+        fi
+    fi
+}
+
 # --- 主菜单 ---
 main() {
     check_root; check_arch; check_dependencies
     
     while true; do
         clear
-        echo "======================================================="; echo -e "   ${GREEN}EasyTier OpenWrt 专属管理脚本 v6.2${NC}"; echo -e "   (架构: aarch64, 自动创建 'et' 快捷命令)"; echo "======================================================="
-        echo " 1. 安装或更新 EasyTier"; echo " 2. 部署新网络 (首个节点)"; echo " 3. 加入现有网络"; echo "-------------------------------------------------------"
-        echo " 4. 管理服务 (启停/状态/日志)"; echo " 5. 查看配置文件"; echo " 6. 查看网络节点 (easytier-cli)"; echo "-------------------------------------------------------"
-        echo " 7. 卸载 EasyTier"; echo " 0. 退出脚本"; echo "======================================================="
-        read -p "请输入选项 [0-7]: " choice
+        echo "======================================================="; echo -e "   ${GREEN}EasyTier OpenWrt 专属管理脚本 v6.3${NC}"; echo -e "   (架构: aarch64, 自动创建 'et' 快捷命令)"; echo "======================================================="
+        echo " 1. 安装或更新 EasyTier"; echo " 2. 检查更新"; echo " 3. 部署新网络 (首个节点)"; echo " 4. 加入现有网络"; echo "-------------------------------------------------------"
+        echo " 5. 管理服务 (启停/状态/日志)"; echo " 6. 查看配置文件"; echo " 7. 查看网络节点 (easytier-cli)"; echo "-------------------------------------------------------"
+        echo " 8. 卸载 EasyTier"; echo " 0. 退出脚本"; echo "======================================================="
+        read -p "请输入选项 [0-8]: " choice
         
         echo
         case $choice in
             1) install_easytier ;;
-            2) deploy_new_network ;;
-            3) join_existing_network ;;
-            4) manage_service_menu ;;
-            5) if check_installed && [ -f "$CONFIG_FILE" ]; then cat "$CONFIG_FILE"; else echo -e "${YELLOW}配置文件不存在或 EasyTier 未安装。${NC}"; fi ;;
-            6) if check_installed; then ${INSTALL_DIR}/${CLI_BINARY_NAME} peer; fi ;;
-            7) uninstall_easytier ;;
+            2) check_update ;;
+            3) deploy_new_network ;;
+            4) join_existing_network ;;
+            5) manage_service_menu ;;
+            6) if check_installed && [ -f "$CONFIG_FILE" ]; then cat "$CONFIG_FILE"; else echo -e "${YELLOW}配置文件不存在或 EasyTier 未安装。${NC}"; fi ;;
+            7) if check_installed; then ${INSTALL_DIR}/${CLI_BINARY_NAME} peer; fi ;;
+            8) uninstall_easytier ;;
             0) exit 0 ;;
             *) echo -e "${RED}无效输入${NC}" ;;
         esac
