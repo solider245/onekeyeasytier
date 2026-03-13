@@ -204,7 +204,8 @@ show_community_nodes() {
 
 select_community_node() {
     show_community_nodes
-    read -p "请选择要使用的公共节点 [1-11]: " node_choice
+    echo -n "请选择要使用的公共节点 [1-11]: "
+    read node_choice
     
     case $node_choice in
         1)
