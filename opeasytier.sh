@@ -6,7 +6,7 @@
 #================================================================================
 
 # --- 脚本配置 ---
-GITHUB_PROXY="ghfast.top"
+GITHUB_PROXY="gh.565600.xyz"
 
 # 颜色定义
 GREEN="\033[1;32m"
@@ -26,7 +26,7 @@ SERVICE_NAME="easytier"
 SERVICE_FILE="/etc/init.d/${SERVICE_NAME}"
 
 # --- OpenWrt aarch64 专属下载链接 ---
-DOWNLOAD_URL="https://ghfast.top/https://github.com/EasyTier/EasyTier/releases/download/v2.3.2/easytier-linux-aarch64-v2.3.2.zip"
+DOWNLOAD_URL="https://gh.565600.xyz/https://github.com/EasyTier/EasyTier/releases/download/v2.3.2/easytier-linux-aarch64-v2.3.2.zip"
 GITHUB_API_URL="https://api.github.com/repos/EasyTier/EasyTier/releases"
 
 
@@ -385,7 +385,7 @@ install_easytier() {
         version=$(echo "$latest_info" | grep -o '"tag_name": "[^"]*' | cut -d'"' -f4)
     fi
 
-    download_file_url="https://ghfast.top/https://github.com/EasyTier/EasyTier/releases/download/${version}/easytier-linux-aarch64-${version}.zip"
+    download_file_url="https://gh.565600.xyz/https://github.com/EasyTier/EasyTier/releases/download/${version}/easytier-linux-aarch64-${version}.zip"
     echo "选择版本: ${version}"
     echo "2. 使用代理下载: ${download_file_url}"
 

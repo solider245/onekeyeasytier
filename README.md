@@ -15,7 +15,7 @@ curl -sL https://raw.githubusercontent.com/solider245/onekeyeasytier/main/easyti
 curl -sL https://gh.565600.xyz/https://raw.githubusercontent.com/solider245/onekeyeasytier/main/easytier.sh -o /tmp/easytier.sh && bash /tmp/easytier.sh
 
 # 方法3: 备用代理
-curl -sL https://ghfast.top/https://raw.githubusercontent.com/solider245/onekeyeasytier/main/easytier.sh -o /tmp/easytier.sh && bash /tmp/easytier.sh
+curl -sL https://gh.565600.xyz/https://raw.githubusercontent.com/solider245/onekeyeasytier/main/easytier.sh -o /tmp/easytier.sh && bash /tmp/easytier.sh
 ```
 
 ## 功能特点
