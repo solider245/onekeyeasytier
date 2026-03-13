@@ -27,6 +27,7 @@ SERVICE_FILE="/etc/init.d/${SERVICE_NAME}"
 
 # --- OpenWrt aarch64 专属下载链接 ---
 DOWNLOAD_URL="https://ghfast.top/https://github.com/EasyTier/EasyTier/releases/download/v2.3.2/easytier-linux-aarch64-v2.3.2.zip"
+GITHUB_API_URL="https://api.github.com/repos/EasyTier/EasyTier/releases"
 
 
 # --- 辅助函数 ---
@@ -167,13 +168,38 @@ remove_shortcut() {
 install_easytier() {
     echo -e "${GREEN}--- 开始安装或更新 EasyTier (OpenWrt/aarch64) ---${NC}"
 
-    local download_file_url="${DOWNLOAD_URL}"
-    if [ -n "$GITHUB_PROXY" ] && ! echo "${download_file_url}" | grep -q "${GITHUB_PROXY}"; then
-        download_file_url=$(echo "$DOWNLOAD_URL" | sed "s|https://|https://${GITHUB_PROXY}/|")
-        echo -e "${YELLOW}1. 使用代理下载: ${download_file_url}${NC}"
+    echo "请选择版本类型:"
+    echo "  1. 稳定版 (Stable) - 推荐"
+    echo "  2. 预发布版 (Pre-release) - 最新功能，可能不稳定"
+    read -p "请选择 [1-2](默认1): " version_choice
+
+    local version
+    local download_file_url
+
+    if [ "$version_choice" = "2" ]; then
+        echo "1. 获取预发布版本信息..."
+        local releases_info
+        releases_info=$(curl -sL "$GITHUB_API_URL")
+        if [ -z "$releases_info" ]; then
+            echo -e "${RED}错误: 无法从 GitHub API 获取版本信息。${NC}"; return 1
+        fi
+        version=$(echo "$releases_info" | grep -o '"tag_name": "[^"]*' | head -1 | cut -d'"' -f4)
+        if [ -z "$version" ]; then
+            echo -e "${RED}错误: 未找到预发布版本。${NC}"; return 1
+        fi
     else
-        echo "1. 直接下载: ${download_file_url}"
+        echo "1. 获取稳定版本信息..."
+        local latest_info
+        latest_info=$(curl -sL "https://api.github.com/repos/EasyTier/EasyTier/releases/latest")
+        if [ -z "$latest_info" ]; then
+            echo -e "${RED}错误: 无法从 GitHub API 获取版本信息。${NC}"; return 1
+        fi
+        version=$(echo "$latest_info" | grep -o '"tag_name": "[^"]*' | cut -d'"' -f4)
     fi
+
+    download_file_url="https://ghfast.top/https://github.com/EasyTier/EasyTier/releases/download/${version}/easytier-linux-aarch64-${version}.zip"
+    echo "选择版本: ${version}"
+    echo "2. 使用代理下载: ${download_file_url}"
 
     local temp_file
     temp_file=$(mktemp)
@@ -183,7 +209,7 @@ install_easytier() {
         echo -e "${RED}下载失败!${NC}"; rm -f "$temp_file"; return 1
     fi
     
-    echo "2. 创建临时解压目录并解压..."
+    echo "3. 创建临时解压目录并解压..."
     local extract_dir
     extract_dir=$(mktemp -d)
     
@@ -193,7 +219,7 @@ install_easytier() {
         rm -f "$temp_file"; rm -rf "$extract_dir"; return 1
     fi
 
-    echo "3. 查找核心文件..."
+    echo "4. 查找核心文件..."
     local found_core
     found_core=$(find "$extract_dir" -type f -name "${CORE_BINARY_NAME}")
     local found_cli
@@ -204,7 +230,7 @@ install_easytier() {
         rm -f "$temp_file"; rm -rf "$extract_dir"; return 1
     fi
     
-    echo "4. 安装文件..."
+    echo "5. 安装文件..."
     mkdir -p "$INSTALL_DIR"
     mv -f "$found_core" "${INSTALL_DIR}/${CORE_BINARY_NAME}"
     mv -f "$found_cli" "${INSTALL_DIR}/${CLI_BINARY_NAME}"

@@ -182,9 +182,22 @@ install_easytier() {
 	local os_identifier="linux"; if [[ "$OS_TYPE" == "macos" ]]; then os_identifier="macos"; fi
 	local arch; arch=$(get_arch)
 
-	echo "1. 获取最新版本信息..."
-	local latest_info; latest_info=$(curl -sL "$GITHUB_API_URL")
-	if [ -z "$latest_info" ] || ! echo "$latest_info" | jq . >/dev/null 2>&1; then echo -e "${RED}错误: 无法从 GitHub API 获取版本信息。${NC}"; return 1; fi
+	echo "请选择版本类型:"
+	echo "  1. 稳定版 (Stable) - 推荐"
+	echo "  2. 预发布版 (Pre-release) - 最新功能，可能不稳定"
+	read -p "请选择 [1-2](默认1): " version_choice
+	if [ "$version_choice" = "2" ]; then
+		echo "1. 获取预发布版本信息..."
+		local releases_info; releases_info=$(curl -sL "https://api.github.com/repos/EasyTier/EasyTier/releases")
+		if [ -z "$releases_info" ] || ! echo "$releases_info" | jq . >/dev/null 2>&1; then echo -e "${RED}错误: 无法从 GitHub API 获取版本信息。${NC}"; return 1; fi
+		local latest_info; latest_info=$(echo "$releases_info" | jq -r '.[] | select(.prerelease == true) | .' | head -1)
+		if [ -z "$latest_info" ]; then echo -e "${RED}错误: 未找到预发布版本。${NC}"; return 1; fi
+	else
+		echo "1. 获取稳定版本信息..."
+		local latest_info; latest_info=$(curl -sL "$GITHUB_API_URL")
+		if [ -z "$latest_info" ] || ! echo "$latest_info" | jq . >/dev/null 2>&1; then echo -e "${RED}错误: 无法从 GitHub API 获取版本信息。${NC}"; return 1; fi
+	fi
+	
 	local search_prefix="easytier-${os_identifier}-${arch}"
 	local asset_json; asset_json=$(echo "$latest_info" | jq ".assets[] | select(.name | startswith(\"${search_prefix}\") and endswith(\".zip\"))")
 	if [ -z "$asset_json" ]; then echo -e "${RED}错误: 未能找到适用于 ${OS_TYPE}(${arch}) 的包。${NC}"; return 1; fi
