@@ -624,15 +624,48 @@ join_existing_network() {
 	read -p "请输入网络密钥 (或留空如果使用Token): " network_secret
 	read -p "请输入此节点虚拟IP (留空则启用DHCP): " virtual_ip
 	
-	peer_address=$(select_community_node)
+	echo ""
+	echo "=============================================="
+	echo "       可用的公共节点列表"
+	echo "=============================================="
+	echo ""
+	echo " 1. tcp://public.easytier.top:11010 (官方节点 - 可能不稳定)"
+	echo " 2. tcp://124.221.120.232:11010 (社区节点 - 北京联通)"
+	echo " 3. tcp://43.154.108.32:11010 (社区节点 - 广东电信)"
+	echo " 4. tcp://47.119.167.113:11010 (社区节点 - 上海阿里云)"
+	echo " 5. tcp://47.116.129.91:11010 (社区节点 - 江苏移动)"
+	echo " 6. tcp://47.243.72.177:11010 (社区节点 - 香港)"
+	echo " 7. tcp://149.28.85.42:11010 (社区节点 - 新加坡)"
+	echo " 8. tcp://207.148.114.92:11010 (社区节点 - 日本东京)"
+	echo " 9. tcp://149.28.197.141:11010 (社区节点 - 澳大利亚)"
+	echo "10. 自定义节点地址"
+	echo "11. 跳过 (不添加公共节点)"
+	echo ""
+	echo -n "请选择要使用的公共节点 [1-11]: "
+	read node_choice
 	
-	if [ "$peer_address" = "skip" ]; then
-		echo -e "${YELLOW}跳过添加公共节点${NC}"
-		peer_address=""
-	elif [ -z "$peer_address" ]; then
-		echo -e "${YELLOW}未选择节点，跳过添加${NC}"
+	case $node_choice in
+		1) peer_address="tcp://public.easytier.top:11010" ;;
+		2) peer_address="tcp://124.221.120.232:11010" ;;
+		3) peer_address="tcp://43.154.108.32:11010" ;;
+		4) peer_address="tcp://47.119.167.113:11010" ;;
+		5) peer_address="tcp://47.116.129.91:11010" ;;
+		6) peer_address="tcp://47.243.72.177:11010" ;;
+		7) peer_address="tcp://149.28.85.42:11010" ;;
+		8) peer_address="tcp://207.148.114.92:11010" ;;
+		9) peer_address="tcp://149.28.197.141:11010" ;;
+		10) 
+			echo -n "请输入自定义节点地址 (如 tcp://1.2.3.4:11010): "
+			read peer_address
+			;;
+		11|"") peer_address="" ;;
+		*) peer_address="" ;;
+	esac
+	
+	if [ -n "$peer_address" ]; then
+		echo "已选择节点: $peer_address"
 	else
-		echo -e "${GREEN}已选择节点: ${peer_address}${NC}"
+		echo "跳过添加公共节点"
 	fi
 
 	create_default_config || return 1
