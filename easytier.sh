@@ -40,6 +40,233 @@ check_root() {
 	fi
 }
 
+generate_random_string() {
+	local length=$1
+	local chars="abcdefghijkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789"
+	local result=""
+	for i in $(seq 1 "$length"); do
+		local random_index=$((RANDOM % ${#chars}))
+		result="${result}${chars:$random_index:1}"
+	done
+	echo "$result"
+}
+
+get_local_ip() {
+	local ip
+	if command -v hostname >/dev/null 2>&1; then
+		ip=$(hostname -I 2>/dev/null | awk '{print $1}')
+	fi
+	if [ -z "$ip" ]; then
+		ip=$(ip route get 1.1.1.1 2>/dev/null | grep -oP 'src \K\S+' || echo "")
+	fi
+	echo "$ip"
+}
+
+get_public_ip() {
+	local public_ip
+	if command -v curl >/dev/null 2>&1; then
+		public_ip=$(curl -s --max-time 5 https://api.ipify.org 2>/dev/null || echo "")
+	fi
+	if [ -z "$public_ip" ] && command -v curl >/dev/null 2>&1; then
+		public_ip=$(curl -s --max-time 5 https://ifconfig.me 2>/dev/null || echo "")
+	fi
+	echo "$public_ip"
+}
+
+check_port_available() {
+	local port=$1
+	if command -v ss >/dev/null 2>&1; then
+		if ss -tuln 2>/dev/null | grep -q ":${port} "; then
+			return 1
+		fi
+	elif command -v netstat >/dev/null 2>&1; then
+		if netstat -tuln 2>/dev/null | grep -q ":${port} "; then
+			return 1
+		fi
+	fi
+	return 0
+}
+
+show_network_requirements() {
+	echo -e "${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+	echo -e "${YELLOW}  ⚠️  网络要求说明${NC}"
+	echo -e "${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+	echo ""
+	echo -e "${BLUE}1. 防火墙要求:${NC}"
+	echo "   需要开放以下端口:"
+	echo "   • UDP: 11010"
+	echo "   • TCP: 11010, 11011, 11012"
+	echo "   • 如果使用 WireGuard: UDP 11011"
+	echo "   • 如果使用 WebSocket: TCP 11011/11012"
+	echo ""
+	echo -e "${BLUE}2. 公网访问要求:${NC}"
+	echo "   • 作为种子节点，需要公网 IP 或端口映射"
+	echo "   • 如果在 NAT 后面，需要做端口映射 (UDP/TCP 11010-11012)"
+	echo "   • 或者使用穿透服务 (如 frp, ngrok 等)"
+	echo ""
+	echo -e "${BLUE}3. 局域网模式:${NC}"
+	echo "   • 如果只在内网使用，可以跳过公网要求"
+	echo "   • 其他节点直接用内网 IP 连接即可"
+	echo ""
+	echo -e "${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+	echo ""
+	read -p "我已了解上述要求，继续部署 (y/n): " confirm
+	if [[ "$confirm" != "y" && "$confirm" != "Y" ]]; then
+		echo -e "${RED}操作已取消。${NC}"
+		return 1
+	fi
+	return 0
+}
+
+show_port_setup_guide() {
+	local peer_address="$1"
+	echo -e "${GREEN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+	echo -e "${GREEN}  📝 端口配置说明${NC}"
+	echo -e "${GREEN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+	echo ""
+	echo -e "${BLUE}已开放的端口:${NC}"
+	echo "   • UDP 11010 - EasyTier 通信"
+	echo "   • TCP 11010 - EasyTier 通信"
+	echo "   • TCP 11011 - WireGuard / KCP"
+	echo "   • TCP 11012 - WSS (WebSocket Secure)"
+	echo ""
+	echo -e "${BLUE}防火墙命令参考:${NC}"
+	
+	if [[ "$OS_TYPE" == "linux" ]]; then
+		echo "   # Ubuntu/Debian"
+		echo "   sudo ufw allow 11010/udp"
+		echo "   sudo ufw allow 11010/tcp"
+		echo "   sudo ufw allow 11011/tcp"
+		echo "   sudo ufw allow 11012/tcp"
+		echo ""
+		echo "   # CentOS/RHEL"
+		echo "   sudo firewall-cmd --permanent --add-port=11010/udp"
+		echo "   sudo firewall-cmd --permanent --add-port=11010/tcp"
+		echo "   sudo firewall-cmd --permanent --add-port=11011/tcp"
+		echo "   sudo firewall-cmd --permanent --add-port=11012/tcp"
+		echo "   sudo firewall-cmd --reload"
+		echo ""
+		echo "   # iptables"
+		echo "   sudo iptables -A INPUT -p udp --dport 11010 -j ACCEPT"
+		echo "   sudo iptables -A INPUT -p tcp --dport 11010 -j ACCEPT"
+		echo "   sudo iptables -A INPUT -p tcp --dport 11011 -j ACCEPT"
+		echo "   sudo iptables -A INPUT -p tcp --dport 11012 -j ACCEPT"
+	elif [[ "$OS_TYPE" == "macos" ]]; then
+		echo "   # macOS (编辑 /etc/pf.conf 或使用 GUI)"
+		echo "   sudo launchctl load /System/Library/LaunchDaemons/com.apple.pfctl.plist"
+		echo "   # 建议通过 System Preferences > Security & Privacy > Firewall"
+	fi
+	
+	echo ""
+	echo -e "${YELLOW}如需从外网访问，请确保路由器也做了端口映射！${NC}"
+	echo -e "${GREEN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+	echo ""
+}
+
+generate_network_token() {
+	local network_name="$1"
+	local network_secret="$2"
+	local peer_address="$3"
+	
+	local token="easytier://${network_name}?secret=${network_secret}&peer=${peer_address}"
+	echo "$token"
+}
+
+parse_network_token() {
+	local token="$1"
+	
+	if [[ "$token" =~ ^easytier://([^?]+)\?secret=([^&]+)\&peer=(.+)$ ]]; then
+		echo "${BASH_REMATCH[1]}|${BASH_REMATCH[2]}|${BASH_REMATCH[3]}"
+		return 0
+	else
+		return 1
+	fi
+}
+
+declare -A COMMUNITY_NODES=(
+	["1"]="tcp://public.easytier.top:11010|官方节点 (可能不稳定)"
+	["2"]="tcp://124.221.120.232:11010|社区节点 (北京联通)"
+	["3"]="tcp://43.154.108.32:11010|社区节点 (广东电信)"
+	["4"]="tcp://47.119.167.113:11010|社区节点 (上海阿里云)"
+	["5"]="tcp://47.116.129.91:11010|社区节点 (江苏移动)"
+	["6"]="tcp://47.243.72.177:11010|社区节点 (香港)"
+	["7"]="tcp://149.28.85.42:11010|社区节点 (新加坡)"
+	["8"]="tcp://207.148.114.92:11010|社区节点 (日本东京)"
+	["9"]="tcp://149.28.197.141:11010|社区节点 (澳大利亚"
+	["10"]="custom|自定义节点"
+	["11"]="skip|跳过 (不添加公共节点)"
+)
+
+show_community_nodes() {
+	echo -e "${BLUE}==============================================${NC}"
+	echo -e "${BLUE}       可用的公共节点列表${NC}"
+	echo -e "${BLUE}==============================================${NC}"
+	echo ""
+	for i in $(seq 1 11); do
+		local node_info="${COMMUNITY_NODES[$i]}"
+		local node_addr=$(echo "$node_info" | cut -d'|' -f1)
+		local node_desc=$(echo "$node_info" | cut -d'|' -f2)
+		if [ "$node_addr" = "skip" ]; then
+			echo -e "${YELLOW} ${i}. 跳过 (不添加公共节点)${NC}"
+		elif [ "$node_addr" = "custom" ]; then
+			echo -e "${YELLOW} ${i}. 自定义节点地址${NC}"
+		else
+			echo -e " ${i}. ${node_addr} ${GREEN}(${node_desc})${NC}"
+		fi
+	done
+	echo ""
+}
+
+select_community_node() {
+	show_community_nodes
+	read -p "请选择要使用的公共节点 [1-11]: " node_choice
+	
+	case $node_choice in
+		1)
+			echo "tcp://public.easytier.top:11010"
+			;;
+		2)
+			echo "tcp://124.221.120.232:11010"
+			;;
+		3)
+			echo "tcp://43.154.108.32:11010"
+			;;
+		4)
+			echo "tcp://47.119.167.113:11010"
+			;;
+		5)
+			echo "tcp://47.116.129.91:11010"
+			;;
+		6)
+			echo "tcp://47.243.72.177:11010"
+			;;
+		7)
+			echo "tcp://149.28.85.42:11010"
+			;;
+		8)
+			echo "tcp://207.148.114.92:11010"
+			;;
+		9)
+			echo "tcp://149.28.197.141:11010"
+			;;
+		10)
+			read -p "请输入自定义节点地址 (如 tcp://1.2.3.4:11010): " custom_node
+			if [ -n "$custom_node" ]; then
+				echo "$custom_node"
+			else
+				echo ""
+			fi
+			;;
+		11)
+			echo "skip"
+			;;
+		*)
+			echo -e "${YELLOW}无效选择，将跳过添加公共节点${NC}"
+			echo "skip"
+			;;
+	esac
+}
+
 check_dependencies() {
 	local missing_deps=()
 	for cmd in curl jq unzip; do
@@ -281,9 +508,19 @@ EOF
 
 deploy_new_network() { 
 	check_installed || return 1
-	read -p "请输入网络名称: " network_name
-	read -p "请输入网络密钥: " network_secret
+	read -p "请输入网络名称 (回车自动生成): " network_name
+	read -p "请输入网络密钥 (回车自动生成): " network_secret
 	read -p "请输入此虚拟IP (回车则启用DHCP): " virtual_ip
+	
+	if [ -z "$network_name" ]; then
+		network_name=$(generate_random_string 8)
+		echo -e "${YELLOW}已自动生成网络名称: ${network_name}${NC}"
+	fi
+	
+	if [ -z "$network_secret" ]; then
+		network_secret=$(generate_random_string 16)
+		echo -e "${YELLOW}已自动生成网络密钥: ${network_secret}${NC}"
+	fi
 	
 	create_default_config || return 1
 	
@@ -312,22 +549,109 @@ deploy_new_network() {
 	sleep 2; status_service
 }
 
+quick_deploy_network() {
+	check_installed || return 1
+	
+	echo -e "${BLUE}=== 快速部署网络 (自动生成参数) ===${NC}"
+	echo ""
+	
+	show_network_requirements || return 1
+	
+	network_name=$(generate_random_string 8)
+	network_secret=$(generate_random_string 16)
+	
+	echo -e "${GREEN}正在生成网络配置...${NC}"
+	echo "  网络名称: $network_name"
+	echo "  网络密钥: $network_secret"
+	
+	create_default_config || return 1
+	
+	set_toml_value "network_name" "\"$network_name\"" "$CONFIG_FILE"
+	set_toml_value "network_secret" "\"$network_secret\"" "$CONFIG_FILE"
+	set_toml_value "dhcp" "true" "$CONFIG_FILE"
+	set_toml_value "ipv4" "\"\"" "$CONFIG_FILE"
+
+	create_service_file
+	reload_service_daemon
+	
+	echo -e "${YELLOW}正在启动服务...${NC}"
+	enable_service
+	restart_service
+	
+	sleep 3
+	
+	local local_ip
+	local_ip=$(get_local_ip)
+	local public_ip
+	public_ip=$(get_public_ip)
+	
+	if [ -z "$public_ip" ]; then
+		public_ip="<需要公网IP或端口映射>"
+		echo -e "${YELLOW}⚠️  未检测到公网IP，可能需要配置端口映射${NC}"
+	fi
+	
+	local peer_address
+	if [ -n "$public_ip" ] && [ "$public_ip" != "<需要公网IP或端口映射>" ]; then
+		peer_address="tcp://${public_ip}:11010"
+	else
+		peer_address="tcp://${local_ip}:11010"
+	fi
+	
+	local token
+	token=$(generate_network_token "$network_name" "$network_secret" "$peer_address")
+	
+	echo ""
+	echo -e "${GREEN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+	echo -e "${GREEN}  🎉 网络部署成功！${NC}"
+	echo -e "${GREEN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+	echo ""
+	echo -e "${BLUE}📋 网络信息 (可分享给其他节点加入):${NC}"
+	echo ""
+	echo -e "  ${YELLOW}完整 Token:${NC}"
+	echo -e "  ${token}"
+	echo ""
+	echo -e "${BLUE}📌 分开使用:${NC}"
+	echo "   网络名称: ${network_name}"
+	echo "   网络密钥: ${network_secret}"
+	echo "   节点地址: ${peer_address}"
+	echo ""
+	echo -e "${BLUE}📊 网络信息:${NC}"
+	echo "   本地 IP: ${local_ip}"
+	if [ -n "$public_ip" ] && [ "$public_ip" != "<需要公网IP或端口映射>" ]; then
+		echo "   公网 IP: ${public_ip}"
+	else
+		echo -e "   公网 IP: ${YELLOW}未检测到 (NAT后面?)${NC}"
+	fi
+	echo ""
+	show_port_setup_guide "$peer_address"
+}
+
 join_existing_network() { 
 	check_installed || return 1
-	read -p "请输入网络名称: " network_name
-	read -p "请输入网络密钥: " network_secret
+	read -p "请输入网络名称 (或 Token): " network_name
+	read -p "请输入网络密钥 (或留空如果使用Token): " network_secret
 	read -p "请输入此节点虚拟IP (留空则启用DHCP): " virtual_ip
-	read -p "请输入一个对端节点地址 (回车默认为 tcp://public.easytier.top:11010): " peer_address
-	if [ -z "$peer_address" ]; then
-		peer_address="tcp://public.easytier.top:11010"
-		echo -e "${YELLOW}使用默认对端节点: ${peer_address}${NC}"
+	
+	echo ""
+	peer_address=$(select_community_node)
+	
+	if [ "$peer_address" = "skip" ]; then
+		echo -e "${YELLOW}跳过添加公共节点${NC}"
+		peer_address=""
+	elif [ -z "$peer_address" ]; then
+		echo -e "${YELLOW}未选择节点，跳过添加${NC}"
+	else
+		echo -e "${GREEN}已选择节点: ${peer_address}${NC}"
 	fi
 
 	create_default_config || return 1
 
 	set_toml_value "network_name" "\"$network_name\"" "$CONFIG_FILE"
 	set_toml_value "network_secret" "\"$network_secret\"" "$CONFIG_FILE"
-	echo -e "\n[[peer]]\nuri = \"${peer_address}\"" >> "$CONFIG_FILE"
+	
+	if [ -n "$peer_address" ]; then
+		echo -e "\n[[peer]]\nuri = \"${peer_address}\"" >> "$CONFIG_FILE"
+	fi
 
 	if [ -z "$virtual_ip" ]; then
 		echo -e "${YELLOW}未输入IP，将启用 DHCP 自动获取地址。${NC}"
@@ -347,6 +671,76 @@ join_existing_network() {
 	enable_service
 	restart_service
 	echo -e "${GREEN}--- 已加入网络，服务已启动并设为开机自启! ---${NC}"
+
+	sleep 2; status_service
+}
+
+join_by_token() {
+	check_installed || return 1
+	
+	echo -e "${BLUE}=== 通过 Token 加入网络 ===${NC}"
+	echo ""
+	echo -e "请输入 Token (例如: easytier://myvpn8k2d?secret=xxx&peer=tcp://1.2.3.4:11010)"
+	read -p ": " token
+	
+	if [ -z "$token" ]; then
+		echo -e "${RED}Token 不能为空${NC}"
+		return 1
+	fi
+	
+	if [[ ! "$token" =~ ^easytier:// ]]; then
+		echo -e "${YELLOW}警告: Token 格式不是以 easytier:// 开头，将尝试作为网络名称处理${NC}"
+		network_name="$token"
+		read -p "请输入网络密钥: " network_secret
+		read -p "请输入对端节点地址: " peer_address
+		
+		if [ -z "$network_secret" ] || [ -z "$peer_address" ]; then
+			echo -e "${RED}网络密钥和对端节点地址都不能为空${NC}"
+			return 1
+		fi
+	else
+		local parsed
+		parsed=$(parse_network_token "$token")
+		if [ $? -ne 0 ] || [ -z "$parsed" ]; then
+			echo -e "${RED}Token 格式解析失败${NC}"
+			return 1
+		fi
+		
+		network_name=$(echo "$parsed" | cut -d'|' -f1)
+		network_secret=$(echo "$parsed" | cut -d'|' -f2)
+		peer_address=$(echo "$parsed" | cut -d'|' -f3)
+		
+		echo -e "${GREEN}解析成功!${NC}"
+		echo "  网络名称: $network_name"
+		echo "  网络密钥: $network_secret"
+		echo "  对端地址: $peer_address"
+	fi
+	
+	read -p "请输入此节点虚拟IP (留空则启用DHCP): " virtual_ip
+	
+	create_default_config || return 1
+
+	set_toml_value "network_name" "\"$network_name\"" "$CONFIG_FILE"
+	set_toml_value "network_secret" "\"$network_secret\"" "$CONFIG_FILE"
+	echo -e "\n[[peer]]\nuri = \"${peer_address}\"" >> "$CONFIG_FILE"
+
+	if [ -z "$virtual_ip" ]; then
+		echo -e "${YELLOW}未输入IP，将启用 DHCP 自动获取地址。${NC}"
+		set_toml_value "dhcp" "true" "$CONFIG_FILE"
+		set_toml_value "ipv4" "\"\"" "$CONFIG_FILE"
+	else
+		echo -e "${GREEN}已设置静态IP: ${virtual_ip}${NC}"
+		set_toml_value "dhcp" "false" "$CONFIG_FILE"
+		set_toml_value "ipv4" "\"$virtual_ip\"" "$CONFIG_FILE"
+	fi
+
+	create_service_file
+	reload_service_daemon
+
+	echo -e "${YELLOW}正在设置开机自启并启动服务...${NC}"
+	enable_service
+	restart_service
+	echo -e "${GREEN}--- 已通过 Token 加入网络，服务已启动! ---${NC}"
 
 	sleep 2; status_service
 }
@@ -522,17 +916,19 @@ main() {
 		echo " 2. 检查更新"
 		echo " 3. 部署服务器 (服务节点)"
 		echo " 4. 加入EasyTier组网网络"
+		echo " 5. 快速部署 (自动生成参数+Token)"
+		echo " 6. 通过Token加入网络"
 		echo "-------------------------------------------------------"
-		echo " 5. 管理EasyTier服务状态"
-		echo " 6. 查看EasyTier配置文件"
-		echo " 7. 查看EasyTier网络节点"
+		echo " 7. 管理EasyTier服务状态"
+		echo " 8. 查看EasyTier配置文件"
+		echo " 9. 查看EasyTier网络节点"
 		echo "-------------------------------------------------------"
-		echo " 8. 卸载 EasyTier"
-		echo " 9. 查看笔记/FAQ"
-		echo "10. 编辑笔记"
+		echo "10. 卸载 EasyTier"
+		echo "11. 查看笔记/FAQ"
+		echo "12. 编辑笔记"
 		echo " 0. 退出脚本"
 		echo "======================================================="
-		read -p "请输入选项 [0-10]: " choice
+		read -p "请输入选项 [0-12]: " choice
 		
 		echo
 		
@@ -541,12 +937,14 @@ main() {
 			2) check_update ;;
 			3) deploy_new_network ;;
 			4) join_existing_network ;;
-			5) manage_service ;;
-			6) if check_installed && [ -f "$CONFIG_FILE" ]; then cat "$CONFIG_FILE"; else echo -e "${YELLOW}配置文件不存在或未安装。${NC}"; fi ;;
-			7) if check_installed; then ${INSTALL_DIR}/${CLI_BINARY_NAME} peer; fi ;;
-			8) uninstall_easytier ;;
-			9) view_notes ;;
-			10) edit_notes ;;
+			5) quick_deploy_network ;;
+			6) join_by_token ;;
+			7) manage_service ;;
+			8) if check_installed && [ -f "$CONFIG_FILE" ]; then cat "$CONFIG_FILE"; else echo -e "${YELLOW}配置文件不存在或未安装。${NC}"; fi ;;
+			9) if check_installed; then ${INSTALL_DIR}/${CLI_BINARY_NAME} peer; fi ;;
+			10) uninstall_easytier ;;
+			11) view_notes ;;
+			12) edit_notes ;;
 			0) exit 0 ;;
 			*) echo -e "${RED}无效输入${NC}" ;;
 		esac
