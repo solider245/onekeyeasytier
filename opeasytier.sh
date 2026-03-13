@@ -595,7 +595,15 @@ join_existing_network() {
     read -p "请输入网络名称 (或 Token): " network_name
     read -p "请输入网络密钥 (或留空如果使用Token): " network_secret
     read -p "请输入此节点虚拟IP (留空则启用DHCP): " virtual_ip
-    read -p "请输入公共节点地址 (留空则不添加, 示例: tcp://124.221.120.232:11010): " peer_address
+    
+    echo ""
+    echo "公共节点可选 (直接回车跳过):"
+    echo "  1) tcp://124.221.120.232:11010 (北京联通)"
+    echo "  2) tcp://43.154.108.32:11010 (广东电信)"  
+    echo "  3) tcp://47.119.167.113:11010 (上海阿里云)"
+    echo "  4) tcp://47.243.72.177:11010 (香港)"
+    echo "  5) 其他自定义地址"
+    read -p "请输入公共节点地址 (参考上面或直接输入): " peer_address
     
     create_default_config || return 1
 
